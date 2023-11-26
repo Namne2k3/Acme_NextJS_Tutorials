@@ -10,7 +10,7 @@ import { RevenueChartSkeleton, LatestInvoicesSkeleton, CardsSkeleton } from '@/a
 const Page = async () => {
     const latestInvoices = await fetchLatestInvoices();
     const revenue = await fetchRevenue();
-    const { numberOfCustomers, numberOfInvoices, totalPaidInvoices, totalPendingInvoices } = await fetchCardData();
+    // const { numberOfCustomers, numberOfInvoices, totalPaidInvoices, totalPendingInvoices } = await fetchCardData();
 
     return (
         <main>
