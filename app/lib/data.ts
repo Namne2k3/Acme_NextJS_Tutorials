@@ -155,7 +155,7 @@ export async function fetchInvoiceById(id: string) {
     const data = await sql<InvoiceForm>`
       SELECT
         invoices.id,
-        invoices.customer_id,
+        invoices.customer_id, 
         invoices.amount,
         invoices.status
       FROM invoices
@@ -167,6 +167,8 @@ export async function fetchInvoiceById(id: string) {
       // Convert amount from cents to dollars
       amount: invoice.amount / 100,
     }));
+
+    // console.log("Check error invoice >>> ", invoice);
 
     return invoice[0];
   } catch (error) {
