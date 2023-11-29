@@ -5,15 +5,31 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 const FormSchema = z.object({
     id: z.string(),
-    customerId: z.string(),
-    amount: z.coerce.number(),
-    status: z.enum(['pending', 'paid']),
+    customerId: z.string({
+        invalid_type_error: 'Please select a customer.',
+    }),
+    amount: z.coerce
+        .number()
+        .gt(0, { message: 'Please enter an amount greater than $0.' }),
+    status: z.enum(['pending', 'paid'], {
+        invalid_type_error: 'Please select an invoice status.',
+    }),
     date: z.string(),
 })
 
 const CreateInvoices = FormSchema.omit({ id: true, date: true })
 
-const createInvoices = async (formData: FormData) => {
+// This is temporary until @types/react-dom is updated
+export type State = {
+    errors?: {
+        customerId?: string[];
+        amount?: string[];
+        status?: string[];
+    };
+    message?: string | null;
+};
+
+const createInvoices = async (prevState: State, formData: FormData) => {
     // console.log(formData);
 
     // const rawFormData = {
@@ -25,12 +41,24 @@ const createInvoices = async (formData: FormData) => {
     // const rawFormData = Object.fromEntries(formData.entries())
     // console.log(rawFormData);
 
-    const { customerId, status, amount } = CreateInvoices.parse({
+    const validatedFields = CreateInvoices.safeParse({
         customerId: formData.get('customerId'),
         status: formData.get('status'),
         amount: formData.get('amount')
     })
 
+    console.log("Check ValidatedFields >>> ", validatedFields);
+
+
+    // If form validation fails, return errors early. Otherwise, continue.
+    if (!validatedFields.success) {
+        return {
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Missing Fields. Failed to Create Invoice.',
+        };
+    }
+
+    const { customerId, amount, status } = validatedFields.data;
     const amountInCents = amount * 100;
     const date = new Date().toISOString().split('T')[0];
 
@@ -45,6 +73,7 @@ const createInvoices = async (formData: FormData) => {
         };
     }
 
+    // Revalidate the cache for the invoices page and redirect the user.
     revalidatePath('/dashboard/invoices')
     redirect('/dashboard/invoices');
 }
@@ -53,14 +82,21 @@ const createInvoices = async (formData: FormData) => {
 const UpdateInvoice = FormSchema.omit({ id: true, date: true });
 
 // ...
+const updateInvoice = async (id: string, prevState: State, formData: FormData) => {
 
-const updateInvoice = async (id: string, formData: FormData) => {
-    const { customerId, amount, status } = UpdateInvoice.parse({
+    const validatedFields = UpdateInvoice.safeParse({
         customerId: formData.get('customerId'),
-        amount: formData.get('amount'),
         status: formData.get('status'),
-    });
+        amount: formData.get('amount')
+    })
 
+    if (!validatedFields.success) {
+        return {
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Missing Fields. Failed to Create Invoice.',
+        };
+    }
+    const { customerId, amount, status } = validatedFields.data;
     const amountInCents = amount * 100;
 
     try {
